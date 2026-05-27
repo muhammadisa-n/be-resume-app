@@ -30,6 +30,5 @@ jobs:
             echo "${{ secrets.ENV_FILE }}" > .env
 
             npm install
-            npm run build
-
+            pm2 flush be-resume-builder
             pm2 restart be-resume-builder --update-env
