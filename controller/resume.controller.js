@@ -4,10 +4,13 @@ import ImageKitStorage from "../config/imagekit.js";
 export const create = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { title } = req.body;
+    const { title, language, accentColor, template } = req.body;
     const newResume = await Resume.create({
       userId,
       title,
+      template,
+      accentColor,
+      language,
     });
     return res.status(201).json({
       message: "Create Resume Success",

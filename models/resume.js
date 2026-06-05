@@ -18,9 +18,14 @@ const ResumeSchema = new mongoose.Schema(
       type: String,
       default: "classic",
     },
+    language: {
+      type: String,
+      enum: ["en", "id"],
+      default: "en",
+    },
     accentColor: {
       type: String,
-      default: "black",
+      default: "#000000",
     },
     summary: {
       type: String,
