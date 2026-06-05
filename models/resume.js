@@ -20,7 +20,7 @@ const ResumeSchema = new mongoose.Schema(
     },
     accentColor: {
       type: String,
-      default: "darkblue",
+      default: "black",
     },
     summary: {
       type: String,
