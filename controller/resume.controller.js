@@ -116,14 +116,13 @@ export const updateResume = async (req, res) => {
     if (req.file) {
       resumeDataJson.personalInfo.image = "";
       resumeDataJson.personalInfo.imageId = "";
+      const removeBg = removeBackground === "yes";
       const result = await ImageKitStorage.files.upload({
         file: req.file.buffer.toString("base64"),
         fileName: req.file.originalname,
         folder: "/resume",
         transformation: {
-          pre:
-            "w-300,h-300,fo-face,z-0,0.75" +
-            (removeBackground ? ",e-bgremove" : ""),
+          pre: `w-300,h-300,c-at_max,fo-face${removeBg ? ",e-bgremove" : ""}`,
         },
       });
       resumeDataJson.personalInfo.image = result.url;
