@@ -132,7 +132,7 @@ export const updateResume = async (req, res) => {
     const resume = await Resume.findOneAndUpdate(
       { _id: id, userId: userId },
       resumeDataJson,
-      { returnDocument: after }
+      { returnDocument: "after" }
     );
     if (!resume) {
       return res.status(400).json({
