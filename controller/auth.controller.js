@@ -21,18 +21,24 @@ const generateToken = (res, userId) => {
 export const Register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
     const exitsUser = await User.findOne({ email });
+
     if (exitsUser) {
-      return res.status(400).json({ message: `Account Already Registered` });
+      return res.status(400).json({ message: "Account Already Registered" });
     }
+
     const hashPassword = await bcrypt.hash(password, 10);
+
     const newUser = await User.create({
       name,
       email,
       password: hashPassword,
     });
-    generateToken(res, exitsUser._id);
-    res.status(201).json({
+
+    generateToken(res, newUser._id);
+
+    return res.status(201).json({
       message: "Register Berhasil",
       user: {
         id: newUser._id,
@@ -44,9 +50,10 @@ export const Register = async (req, res) => {
     if (err.name === "ValidationError") {
       return res.status(400).json({ message: err.message });
     }
-    return res
-      .status(500)
-      .json({ message: `Internal Server Error : ${err.message}` });
+
+    return res.status(500).json({
+      message: `Internal Server Error : ${err.message}`,
+    });
   }
 };
 export const Login = async (req, res) => {
