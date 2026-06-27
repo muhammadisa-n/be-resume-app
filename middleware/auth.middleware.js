@@ -59,7 +59,7 @@ const verifySsoAndUpsert = async (req) => {
       user.image_url = imageUrl || null;
       await user.save();
     } else {
-      const hashPassword = await bcrypt.hash("123456", 10);
+      const hashPassword = await bcrypt.hash("12345678", 10);
       user = await User.create({
         sso_id: ssoId,
         name,
