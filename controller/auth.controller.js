@@ -130,13 +130,14 @@ export const SyncProfile = async (req, res) => {
       return res.status(401).json({ message: "SSO Session tidak valid." });
     }
 
-    const { id: ssoId, name, email } = data.user;
+    const { id: ssoId, name, email, image_url: imageUrl } = data.user;
 
     let user = await User.findOne({ sso_id: ssoId });
 
     if (user) {
       user.name = name;
       user.email = email;
+      user.image_url = imageUrl || null;
       await user.save();
     } else {
       user = await User.findOne({ email });
@@ -144,6 +145,7 @@ export const SyncProfile = async (req, res) => {
       if (user) {
         user.sso_id = ssoId;
         user.name = name;
+        user.image_url = imageUrl || null;
         await user.save();
       } else {
         const hashPassword = await bcrypt.hash("123456", 10);
@@ -152,13 +154,68 @@ export const SyncProfile = async (req, res) => {
           name,
           email,
           password: hashPassword,
+          image_url: imageUrl || null,
         });
       }
     }
 
     return res.status(200).json({
       message: "Sync Profile Success",
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user._id, name: user.name, email: user.email, image_url: user.image_url },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const UpdateProfile = async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { name: name.trim() },
+      { new: true }
+    ).select("-password");
+
+    return res.status(200).json({
+      message: "Update Profile Success",
+      user: { id: user._id, name: user.name, email: user.email, image_url: user.image_url },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const ChangePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: "Old password and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Old password is incorrect" });
+    }
+
+    const hashPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashPassword;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Change Password Success",
     });
   } catch (err) {
     return res.status(500).json({ message: err.message });

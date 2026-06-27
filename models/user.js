@@ -22,6 +22,10 @@ const UserSchema = new mongoose.Schema(
       sparse: true,
       default: null,
     },
+    image_url: {
+      type: String,
+      default: null,
+    },
     password: {
       type: String,
       trim: true,

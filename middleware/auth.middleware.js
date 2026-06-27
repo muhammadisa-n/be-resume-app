@@ -41,13 +41,14 @@ const verifySsoAndUpsert = async (req) => {
   const data = await response.json();
   if (!data.valid || !data.user) return null;
 
-  const { id: ssoId, name, email } = data.user;
+  const { id: ssoId, name, email, image_url: imageUrl } = data.user;
 
   let user = await User.findOne({ sso_id: ssoId });
 
   if (user) {
     user.name = name;
     user.email = email;
+    user.image_url = imageUrl || null;
     await user.save();
   } else {
     user = await User.findOne({ email });
@@ -55,6 +56,7 @@ const verifySsoAndUpsert = async (req) => {
     if (user) {
       user.sso_id = ssoId;
       user.name = name;
+      user.image_url = imageUrl || null;
       await user.save();
     } else {
       const hashPassword = await bcrypt.hash("123456", 10);
@@ -63,6 +65,7 @@ const verifySsoAndUpsert = async (req) => {
         name,
         email,
         password: hashPassword,
+        image_url: imageUrl || null,
       });
     }
   }
