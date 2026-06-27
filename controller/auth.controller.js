@@ -116,10 +116,9 @@ export const Logout = async (req, res) => {
 };
 export const SyncProfile = async (req, res) => {
   try {
-    const response = await fetch(
-      `${process.env.SSO_URL}/api/auth/verify-app`,
-      { headers: { "x-app-key": process.env.SSO_KEY } }
-    );
+    const response = await fetch(`${process.env.SSO_URL}/api/auth/verify-app`, {
+      headers: { "x-app-key": process.env.SSO_KEY, Cookie: req.headers.cookie },
+    });
 
     if (!response.ok) {
       return res.status(401).json({ message: "SSO Session tidak valid." });
@@ -148,7 +147,12 @@ export const SyncProfile = async (req, res) => {
         await user.save();
       } else {
         const hashPassword = await bcrypt.hash("123456", 10);
-        user = await User.create({ sso_id: ssoId, name, email, password: hashPassword });
+        user = await User.create({
+          sso_id: ssoId,
+          name,
+          email,
+          password: hashPassword,
+        });
       }
     }
 

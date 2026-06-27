@@ -31,9 +31,9 @@ const verifyJwt = async (req) => {
   return user;
 };
 
-const verifySsoAndUpsert = async () => {
+const verifySsoAndUpsert = async (req) => {
   const response = await fetch(`${process.env.SSO_URL}/api/auth/verify-app`, {
-    headers: { "x-app-key": process.env.SSO_KEY },
+    headers: { "x-app-key": process.env.SSO_KEY, Cookie: req.headers.cookie },
   });
 
   if (!response.ok) return null;
@@ -85,7 +85,7 @@ export const AuthMiddleware = async (req, res, next) => {
 
     // 2. SSO fallback
     if (isSsoActive()) {
-      const user = await verifySsoAndUpsert();
+      const user = await verifySsoAndUpsert(req);
 
       if (!user) {
         return res.status(401).json({ message: "SSO Session tidak valid." });
