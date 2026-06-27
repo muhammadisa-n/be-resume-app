@@ -90,6 +90,8 @@ export const Logout = async (req, res) => {
       process.env.NODE_ENV === "production"
         ? "__Host-resbuild_rt"
         : "resbuild_rt";
+
+    const isProd = process.env.NODE_ENV === "production";
     res.clearCookie(cookieName, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -98,13 +100,23 @@ export const Logout = async (req, res) => {
     });
 
     if (process.env.AUTH_WITH_SSO === "true") {
-      res.clearCookie("sso_auth_muhammadisa", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        domain: ".muhammad-isa.my.id",
-        path: "/",
-      });
+      try {
+        await fetch(`${process.env.SSO_URL}/api/auth/logout`, {
+          method: "POST",
+          headers: {
+            Cookie: req.headers.cookie,
+          },
+        });
+        res.clearCookie("sso_auth_muhammadisa", {
+          httpOnly: true,
+          secure: isProd,
+          sameSite: "lax",
+          domain: isProd ? ".muhammad-isa.my.id" : undefined,
+          path: "/",
+        });
+      } catch (error) {
+        console.error("[SSO] Error:", ssoErr.message);
+      }
     }
 
     return res.status(200).json({
@@ -161,7 +173,12 @@ export const SyncProfile = async (req, res) => {
 
     return res.status(200).json({
       message: "Sync Profile Success",
-      user: { id: user._id, name: user.name, email: user.email, image_url: user.image_url },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        image_url: user.image_url,
+      },
     });
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -184,7 +201,12 @@ export const UpdateProfile = async (req, res) => {
 
     return res.status(200).json({
       message: "Update Profile Success",
-      user: { id: user._id, name: user.name, email: user.email, image_url: user.image_url },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        image_url: user.image_url,
+      },
     });
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -196,11 +218,15 @@ export const ChangePassword = async (req, res) => {
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
-      return res.status(400).json({ message: "Old password and new password are required" });
+      return res
+        .status(400)
+        .json({ message: "Old password and new password are required" });
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({ message: "New password must be at least 6 characters" });
+      return res
+        .status(400)
+        .json({ message: "New password must be at least 6 characters" });
     }
 
     const user = await User.findById(req.user.id);
