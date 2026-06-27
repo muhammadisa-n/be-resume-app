@@ -96,6 +96,17 @@ export const Logout = async (req, res) => {
       sameSite: "lax",
       path: "/",
     });
+
+    if (process.env.AUTH_WITH_SSO === "true") {
+      res.clearCookie("sso_auth_muhammadisa", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        domain: ".muhammad-isa.my.id",
+        path: "/",
+      });
+    }
+
     return res.status(200).json({
       message: "Logout Berhasil",
     });
@@ -103,6 +114,53 @@ export const Logout = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+export const SyncProfile = async (req, res) => {
+  try {
+    const response = await fetch(
+      `${process.env.SSO_URL}/api/auth/verify-app`,
+      { headers: { "x-app-key": process.env.SSO_KEY } }
+    );
+
+    if (!response.ok) {
+      return res.status(401).json({ message: "SSO Session tidak valid." });
+    }
+
+    const data = await response.json();
+
+    if (!data.valid || !data.user) {
+      return res.status(401).json({ message: "SSO Session tidak valid." });
+    }
+
+    const { id: ssoId, name, email } = data.user;
+
+    let user = await User.findOne({ sso_id: ssoId });
+
+    if (user) {
+      user.name = name;
+      user.email = email;
+      await user.save();
+    } else {
+      user = await User.findOne({ email });
+
+      if (user) {
+        user.sso_id = ssoId;
+        user.name = name;
+        await user.save();
+      } else {
+        const hashPassword = await bcrypt.hash("123456", 10);
+        user = await User.create({ sso_id: ssoId, name, email, password: hashPassword });
+      }
+    }
+
+    return res.status(200).json({
+      message: "Sync Profile Success",
+      user: { id: user._id, name: user.name, email: user.email },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 export const Me = async (req, res) => {
   try {
     res.status(200).json({

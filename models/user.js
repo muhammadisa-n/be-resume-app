@@ -16,6 +16,12 @@ const UserSchema = new mongoose.Schema(
         "Please provide a valid email address",
       ],
     },
+    sso_id: {
+      type: String,
+      unique: true,
+      sparse: true,
+      default: null,
+    },
     password: {
       type: String,
       trim: true,
