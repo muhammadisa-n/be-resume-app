@@ -2,15 +2,27 @@ import User from "../models/user.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import "dotenv/config";
+
+const isSsoActive = () => process.env.AUTH_WITH_SSO === "true";
+
+const getCookieName = () =>
+  process.env.NODE_ENV === "production" ? "__Host-resbuild_rt" : "resbuild_rt";
+
+const getOriginUrl = (req) => {
+  return (
+    req.headers["x-origin-url"] ||
+    req.headers.referer ||
+    req.headers.origin ||
+    null
+  );
+};
+
 const generateToken = (res, userId) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
-  const cookieName =
-    process.env.NODE_ENV === "production"
-      ? "__Host-resbuild_rt"
-      : "resbuild_rt";
-  res.cookie(cookieName, token, {
+
+  res.cookie(getCookieName(), token, {
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     secure: process.env.NODE_ENV === "production",
@@ -20,6 +32,12 @@ const generateToken = (res, userId) => {
 };
 export const Register = async (req, res) => {
   try {
+    if (isSsoActive()) {
+      return res.status(403).json({
+        message: "Local authentication is disabled. Please login via SSO.",
+      });
+    }
+
     const { name, email, password } = req.body;
 
     const exitsUser = await User.findOne({ email });
@@ -58,6 +76,12 @@ export const Register = async (req, res) => {
 };
 export const Login = async (req, res) => {
   try {
+    if (isSsoActive()) {
+      return res.status(403).json({
+        message: "Local authentication is disabled. Please login via SSO.",
+      });
+    }
+
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ message: `Email And Password Required` });
@@ -86,25 +110,20 @@ export const Login = async (req, res) => {
 };
 export const Logout = async (req, res) => {
   try {
-    const cookieName =
-      process.env.NODE_ENV === "production"
-        ? "__Host-resbuild_rt"
-        : "resbuild_rt";
-
     const isProd = process.env.NODE_ENV === "production";
-    res.clearCookie(cookieName, {
+    res.clearCookie(getCookieName(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
     });
 
-    if (process.env.AUTH_WITH_SSO === "true") {
+    if (isSsoActive()) {
       try {
         await fetch(`${process.env.SSO_URL}/api/auth/logout`, {
           method: "POST",
           headers: {
-            Cookie: req.headers.cookie,
+            Cookie: req.headers.cookie || "",
           },
         });
         res.clearCookie("sso_auth_muhammadisa", {
@@ -115,7 +134,7 @@ export const Logout = async (req, res) => {
           path: "/",
         });
       } catch (error) {
-        console.error("[SSO] Error:", ssoErr.message);
+        console.error("[SSO] Error:", error.message);
       }
     }
 
@@ -129,7 +148,11 @@ export const Logout = async (req, res) => {
 export const SyncProfile = async (req, res) => {
   try {
     const response = await fetch(`${process.env.SSO_URL}/api/auth/verify-app`, {
-      headers: { "x-app-key": process.env.SSO_KEY, Cookie: req.headers.cookie },
+      headers: {
+        "x-app-key": process.env.SSO_KEY,
+        Cookie: req.headers.cookie || "",
+        "x-origin-url": getOriginUrl(req) || "",
+      },
     });
 
     if (!response.ok) {

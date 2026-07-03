@@ -5,17 +5,29 @@ import User from "../models/user.js";
 
 const isSsoActive = () => process.env.AUTH_WITH_SSO === "true";
 
+const getClientSessionTtlMs = () => {
+  const ttl = Number(process.env.CLIENT_SESSION_TTL_MS || 300000);
+
+  return Number.isFinite(ttl) && ttl > 0 ? ttl : 300000;
+};
+
+const getClientSessionTtlSeconds = () =>
+  Math.floor(getClientSessionTtlMs() / 1000);
+
 const getCookieName = () =>
   process.env.NODE_ENV === "production" ? "__Host-resbuild_rt" : "resbuild_rt";
 
 const generateToken = (res, userId) => {
+  const ttlMs = getClientSessionTtlMs();
+  const ttlSeconds = getClientSessionTtlSeconds();
+
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: "15m",
+    expiresIn: ttlSeconds,
   });
 
   res.cookie(getCookieName(), token, {
     httpOnly: true,
-    maxAge: 15 * 60 * 1000,
+    maxAge: ttlMs,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
@@ -31,9 +43,22 @@ const verifyJwt = async (req) => {
   return user;
 };
 
+const getOriginUrl = (req) => {
+  return (
+    req.headers["x-origin-url"] ||
+    req.headers.referer ||
+    req.headers.origin ||
+    null
+  );
+};
+
 const verifySsoAndUpsert = async (req) => {
   const response = await fetch(`${process.env.SSO_URL}/api/auth/verify-app`, {
-    headers: { "x-app-key": process.env.SSO_KEY, Cookie: req.headers.cookie },
+    headers: {
+      "x-app-key": process.env.SSO_KEY,
+      Cookie: req.headers.cookie || "",
+      "x-origin-url": getOriginUrl(req) || "",
+    },
   });
 
   if (!response.ok) return null;
