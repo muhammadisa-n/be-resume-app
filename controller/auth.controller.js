@@ -147,13 +147,16 @@ export const Logout = async (req, res) => {
 };
 export const SyncProfile = async (req, res) => {
   try {
-    const response = await fetch(`${process.env.SSO_URL}/api/auth/verify-app`, {
-      headers: {
-        "x-app-key": process.env.SSO_KEY,
-        Cookie: req.headers.cookie || "",
-        "x-origin-url": getOriginUrl(req) || "",
-      },
-    });
+    const response = await fetch(
+      `${process.env.SSO_URL}/api/auth/sync-profile`,
+      {
+        headers: {
+          "x-app-key": process.env.SSO_KEY,
+          Cookie: req.headers.cookie || "",
+          "x-origin-url": getOriginUrl(req) || "",
+        },
+      }
+    );
 
     if (!response.ok) {
       return res.status(401).json({ message: "SSO Session tidak valid." });
