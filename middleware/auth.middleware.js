@@ -104,7 +104,12 @@ export const AuthMiddleware = async (req, res, next) => {
     try {
       const user = await verifyJwt(req);
       if (user) {
-        req.user = { id: user._id, name: user.name, email: user.email };
+        req.user = {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          image_url: user.image_url,
+        };
         return next();
       }
     } catch {
@@ -121,7 +126,12 @@ export const AuthMiddleware = async (req, res, next) => {
 
       generateToken(res, user._id);
 
-      req.user = { id: user._id, name: user.name, email: user.email };
+      req.user = {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        image_url: user.image_url,
+      };
       return next();
     }
 

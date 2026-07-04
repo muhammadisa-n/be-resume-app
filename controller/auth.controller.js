@@ -32,12 +32,6 @@ const generateToken = (res, userId) => {
 };
 export const Register = async (req, res) => {
   try {
-    if (isSsoActive()) {
-      return res.status(403).json({
-        message: "Local authentication is disabled. Please login via SSO.",
-      });
-    }
-
     const { name, email, password } = req.body;
 
     const exitsUser = await User.findOne({ email });
@@ -76,12 +70,6 @@ export const Register = async (req, res) => {
 };
 export const Login = async (req, res) => {
   try {
-    if (isSsoActive()) {
-      return res.status(403).json({
-        message: "Local authentication is disabled. Please login via SSO.",
-      });
-    }
-
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ message: `Email And Password Required` });
@@ -186,7 +174,7 @@ export const SyncProfile = async (req, res) => {
         user.image_url = imageUrl || null;
         await user.save();
       } else {
-        const hashPassword = await bcrypt.hash("123456", 10);
+        const hashPassword = await bcrypt.hash("12345678", 10);
         user = await User.create({
           sso_id: ssoId,
           name,
@@ -282,6 +270,7 @@ export const Me = async (req, res) => {
         id: req.user.id,
         name: req.user.name,
         email: req.user.email,
+        image_url: req.user.image_url,
       },
     });
   } catch (err) {
